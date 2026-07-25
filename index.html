@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MyText</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MyText">
+<meta name="theme-color" content="#ECE6F7" id="theme-color-meta">
+<link rel="apple-touch-icon" sizes="180x180" href="balas-icon-180.png">
+<link rel="icon" type="image/png" href="balas-icon.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --bg-outer: #E6F0F9;
+    --paper: #F8FBFE;
+    --panel: #EEF5FB;
+    --ink: #22384A;
+    --muted: #7C93A3;
+    --border: #D3E4F0;
+    --accent: #7CA9D9;
+    --accent-text: #FBFDFF;
+    --danger: #C97462;
+    --danger-text: #7A3326;
+    --shadow-d-rgb: 110,140,170;
+    --shadow-l-rgb: 255,255,255;
+  }
+  body.dark {
+    --bg-outer: #161F29;
+    --paper: #1F2B38;
+    --panel: #253340;
+    --ink: #E4EEF6;
+    --muted: #93A9BB;
+    --border: #2C3B4A;
+    --accent: #8FBBE8;
+    --accent-text: #122029;
+    --danger: #E0958A;
+    --danger-text: #F6C0B5;
+    --shadow-d-rgb: 6,9,12;
+    --shadow-l-rgb: 90,80,112;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg-outer);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  .page { min-height: 100vh; display: flex; justify-content: center; }
+  .shell { width: 100%; max-width: 480px; padding: 20px 18px calc(40px + env(safe-area-inset-bottom)); }
+
+  .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .logo-mark { width: 40px; height: 40px; border-radius: 13px; background: var(--accent); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+  .app-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: var(--ink); line-height: 1.15; }
+  .app-tagline { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .icon-btn { width: 38px; height: 38px; border-radius: 12px; background: var(--panel); border: none; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+
+  .card { background: var(--paper); border-radius: 18px; padding: 18px; margin-bottom: 16px;
+    box-shadow: 5px 5px 12px rgba(var(--shadow-d-rgb),0.22), -5px -5px 12px rgba(var(--shadow-l-rgb),0.85); }
+
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  textarea.field-input { width: 100%; border: none; border-radius: 14px; padding: 14px; font-size: 16px; font-family: 'Inter', sans-serif; background: var(--panel); color: var(--ink); outline: none; resize: vertical; min-height: 100px; line-height: 1.5; }
+
+  .lang-row { display: flex; gap: 8px; margin-top: 12px; }
+  .lang-chip { flex: 1; padding: 9px 6px; border-radius: 12px; background: var(--panel); border: none; font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; text-align: center; }
+  .lang-chip.active { background: var(--accent); color: var(--accent-text); }
+
+  .btn { border: none; border-radius: 14px; padding: 14px 20px; font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+  .btn-primary { background: var(--accent); color: var(--accent-text); margin-top: 14px; }
+  .btn-primary:disabled { opacity: 0.55; }
+  .btn-copy { background: var(--panel); color: var(--ink); font-size: 12.5px; padding: 8px 12px; width: auto; border-radius: 10px; }
+  .btn-copy.copied { background: var(--accent); color: var(--accent-text); }
+
+  .section-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 4px 2px 10px; }
+
+  .translation-text { font-size: 15px; line-height: 1.6; color: var(--ink); margin-bottom: 12px; white-space: pre-wrap; }
+
+  .reply-card { background: var(--panel); border-radius: 14px; padding: 14px 15px; margin-bottom: 10px; }
+  .reply-tone { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink); background: color-mix(in srgb, var(--accent) 35%, var(--paper)); display: inline-block; padding: 3px 9px; border-radius: 10px; margin-bottom: 8px; }
+  .reply-text { font-size: 14.5px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; margin-bottom: 10px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-state .ee-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-state .ee-title { font-weight: 700; color: var(--ink); font-size: 14px; margin-bottom: 4px; }
+  .empty-state .ee-sub { font-size: 12.5px; }
+
+  .error-banner { background: color-mix(in srgb, var(--danger) 20%, var(--paper)); color: var(--danger-text); border-radius: 12px; padding: 12px 14px; font-size: 13px; margin-bottom: 14px; }
+
+  .spinner { width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .footer-note { text-align: center; font-size: 11px; color: var(--muted); margin-top: 20px; line-height: 1.6; }
+
+  .app-menu-wrap { position: relative; }
+  @keyframes dropdownPopIn { from { opacity:0; transform:scale(0.9) translateY(-8px);} to { opacity:1; transform:scale(1) translateY(0);} }
+  .dropdown-menu {
+    position: absolute; top: calc(100% + 10px); right: 0; z-index: 50;
+    background: var(--paper); border-radius: 16px; padding: 8px; width: 220px;
+    box-shadow: 8px 8px 20px rgba(var(--shadow-d-rgb),0.3), -6px -6px 16px rgba(var(--shadow-l-rgb),0.6);
+    transform-origin: top right; animation: dropdownPopIn 0.18s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .dropdown-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; border: none; border-radius: 11px; padding: 11px 12px; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; font-family: 'Inter', sans-serif; }
+  .dropdown-item:hover { background: var(--panel); }
+
+  .theme-swatch-preview { width: 100%; height: 34px; border-radius: 10px; }
+  .theme-option-row { display: flex; flex-direction: column; gap: 8px; width: 100%; background: var(--panel); border: none; border-radius: 14px; padding: 12px; margin-bottom: 10px; cursor: pointer; text-align: left; }
+  .theme-option-row.active { box-shadow: inset 2px 2px 5px rgba(var(--shadow-d-rgb),0.28), inset -2px -2px 5px rgba(var(--shadow-l-rgb),0.6); }
+  .theme-option-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="shell">
+    <div class="app-header">
+      <div class="logo-mark">💬</div>
+      <div style="flex:1;">
+        <div class="app-name">MyText</div>
+        <div class="app-tagline">terjemah &amp; cadangan balasan pantas</div>
+      </div>
+      <div class="app-menu-wrap" id="app-menu-wrap">
+        <button type="button" class="icon-btn" id="menu-btn" onclick="toggleMenu(event)">☰</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>Tampal mesej majikan di sini</label>
+        <textarea class="field-input" id="msgInput" placeholder="Contoh: Can you send me the report by tomorrow morning? Also need the updated figures."></textarea>
+      </div>
+      <div class="lang-row">
+        <button type="button" class="lang-chip active" id="replyLangAuto" onclick="setReplyLang('auto')">Balas gaya sama</button>
+        <button type="button" class="lang-chip" id="replyLangBM" onclick="setReplyLang('bm')">Balas BM</button>
+        <button type="button" class="lang-chip" id="replyLangEN" onclick="setReplyLang('en')">Balas Inggeris</button>
+      </div>
+      <button type="button" class="btn btn-primary" id="generateBtn" onclick="generateReplies()">✨ Terjemah &amp; Cadangan Balasan</button>
+    </div>
+
+    <div id="errorRoot"></div>
+    <div id="resultRoot">
+      <div class="empty-state">
+        <div class="ee-icon">💬</div>
+        <div class="ee-title">Belum ada mesej</div>
+        <div class="ee-sub">Tampal mesej majikan anda di atas untuk mula</div>
+      </div>
+    </div>
+
+    <div class="footer-note">Mesej diproses terus, tiada apa disimpan atau dihantar ke mana-mana selain untuk jana balasan.</div>
+  </div>
+</div>
+
+<div id="themeModalRoot"></div>
+
+<script>
+  // ---------- theme (local preference only, no account needed) ----------
+  const THEME_PRESETS = {
+    biru:     { name: 'Biru', light: { bg:'#E6F0F9', panel:'#EEF5FB', paper:'#F8FBFE', ink:'#22384A', muted:'#7C93A3', border:'#D3E4F0', accent:'#7CA9D9', accentText:'#FBFDFF', shadowD:'110,140,170', shadowL:'255,255,255' },
+                dark:  { bg:'#161F29', panel:'#253340', paper:'#1F2B38', ink:'#E4EEF6', muted:'#93A9BB', border:'#2C3B4A', accent:'#8FBBE8', accentText:'#122029', shadowD:'6,9,12', shadowL:'55,68,80' } },
+    lavender: { name: 'Lavender', light: { bg:'#ECE6F7', panel:'#F4EEFC', paper:'#FFFBF8', ink:'#473F58', muted:'#9A90AC', border:'#E4DCF2', accent:'#C3AEE8', accentText:'#3A2E56', shadowD:'150,130,180', shadowL:'255,255,255' },
+                dark:  { bg:'#262133', panel:'#3C3552', paper:'#322C44', ink:'#EAE4F5', muted:'#AFA3C8', border:'#4A4262', accent:'#B79CE8', accentText:'#2A2140', shadowD:'15,12,22', shadowL:'90,80,112' } },
+    hijau:    { name: 'Hijau', light: { bg:'#E7F2EA', panel:'#EFF7F1', paper:'#F9FCFA', ink:'#22392A', muted:'#6E8778', border:'#D3E7D8', accent:'#7FB88F', accentText:'#FBFEFC', shadowD:'100,150,115', shadowL:'255,255,255' },
+                dark:  { bg:'#16211A', panel:'#1E2C22', paper:'#1A2620', ink:'#E3F0E7', muted:'#95AC9E', border:'#2C3E32', accent:'#8FCB9F', accentText:'#12200F', shadowD:'6,10,7', shadowL:'55,72,60' } },
+    coklat:   { name: 'Coklat', light: { bg:'#F0E5DA', panel:'#F5EEE5', paper:'#FAF6F1', ink:'#3A2A1E', muted:'#8A7565', border:'#E3D2C0', accent:'#A17A56', accentText:'#FBF6F0', shadowD:'110,85,60', shadowL:'255,255,255' },
+                dark:  { bg:'#1E1712', panel:'#281F18', paper:'#241C16', ink:'#EBE0D4', muted:'#B39F8C', border:'#382C22', accent:'#BC9670', accentText:'#1A1108', shadowD:'6,4,3', shadowL:'52,44,36' } },
+  };
+  let currentTheme = 'biru';
+  let darkMode = false;
+
+  function applyThemePref() {
+    try {
+      const savedTheme = localStorage.getItem('balas_theme');
+      if (savedTheme && THEME_PRESETS[savedTheme]) currentTheme = savedTheme;
+      const savedDark = localStorage.getItem('balas_dark');
+      if (savedDark === '1') darkMode = true;
+    } catch (e) {}
+    applyTheme();
+  }
+  function applyTheme() {
+    document.body.classList.toggle('dark', darkMode);
+    const preset = THEME_PRESETS[currentTheme] || THEME_PRESETS.biru;
+    const c = darkMode ? preset.dark : preset.light;
+    const root = document.documentElement.style;
+    root.setProperty('--bg-outer', c.bg);
+    root.setProperty('--panel', c.panel);
+    root.setProperty('--paper', c.paper);
+    root.setProperty('--ink', c.ink);
+    root.setProperty('--muted', c.muted);
+    root.setProperty('--border', c.border);
+    root.setProperty('--accent', c.accent);
+    root.setProperty('--accent-text', c.accentText);
+    root.setProperty('--shadow-d-rgb', c.shadowD);
+    root.setProperty('--shadow-l-rgb', c.shadowL);
+    document.getElementById('theme-color-meta').setAttribute('content', c.bg);
+  }
+  function toggleDarkMode() {
+    darkMode = !darkMode;
+    applyTheme();
+    try { localStorage.setItem('balas_dark', darkMode ? '1' : '0'); } catch (e) {}
+    renderMenu();
+  }
+  function setTheme(key) {
+    currentTheme = key;
+    applyTheme();
+    try { localStorage.setItem('balas_theme', key); } catch (e) {}
+    closeThemeModal();
+    renderMenu();
+  }
+  applyThemePref();
+
+  // ---------- dropdown menu ----------
+  let menuOpen = false;
+  function toggleMenu(e) { if (e) e.stopPropagation(); menuOpen = !menuOpen; renderMenu(); }
+  function closeMenu() {
+    menuOpen = false;
+    const wrap = document.getElementById('app-menu-wrap');
+    const existing = wrap && wrap.querySelector('.dropdown-menu');
+    if (existing) existing.remove();
+  }
+  function renderMenu() {
+    const wrap = document.getElementById('app-menu-wrap');
+    if (!wrap) return;
+    const existing = wrap.querySelector('.dropdown-menu');
+    if (existing) existing.remove();
+    if (!menuOpen) return;
+    let html = '<div class="dropdown-menu" onclick="event.stopPropagation()">';
+    html += '<button type="button" class="dropdown-item" onclick="closeMenu();openThemePicker();">🎨 Warna Tema</button>';
+    html += '<button type="button" class="dropdown-item" onclick="toggleDarkMode()">' + (darkMode ? '☀️ Mod Terang' : '🌙 Mod Malam') + '</button>';
+    html += '</div>';
+    wrap.insertAdjacentHTML('beforeend', html);
+  }
+  document.addEventListener('click', function (e) {
+    if (!menuOpen) return;
+    const wrap = document.getElementById('app-menu-wrap');
+    if (wrap && !wrap.contains(e.target)) closeMenu();
+  });
+
+  function openThemePicker() {
+    let html = '<div class="modal-overlay" onclick="closeThemeModal(event)" style="position:fixed;inset:0;background:rgba(20,20,30,0.4);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;">';
+    html += '<div onclick="event.stopPropagation()" style="background:var(--paper);border-radius:20px;padding:20px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:17px;">Warna Tema</span><button onclick="closeThemeModal()" style="background:var(--panel);border:none;width:32px;height:32px;border-radius:10px;cursor:pointer;color:var(--ink);">✕</button></div>';
+    Object.keys(THEME_PRESETS).forEach(key => {
+      const preset = THEME_PRESETS[key];
+      html += '<button type="button" class="theme-option-row' + (currentTheme === key ? ' active' : '') + '" onclick="setTheme(\'' + key + '\')">';
+      html += '<div class="theme-swatch-preview" style="background:' + preset.light.bg + ';"></div>';
+      html += '<div class="theme-option-name">' + preset.name + '</div>';
+      html += '</button>';
+    });
+    html += '</div></div>';
+    document.getElementById('themeModalRoot').insertAdjacentHTML('beforeend', html);
+  }
+  function closeThemeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('themeModalRoot').innerHTML = '';
+  }
+
+  // ---------- Supabase (Edge Function call only — no auth, no data storage) ----------
+  const SUPABASE_URL = 'https://zdtmljxdmllbdzjdwrwa.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkdG1sanhkbWxsYmR6amR3cndhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5Mzk4MTcsImV4cCI6MjEwMDUxNTgxN30.JKNy0pX8wBdrr3Oud_ydr3IXnM5yjSJpOfKz9FxFIC0';
+  let supabaseClient = null;
+  try {
+    if (SUPABASE_URL.indexOf('YOUR-PROJECT-REF') === -1 && typeof supabase !== 'undefined' && supabase.createClient) {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (e) { supabaseClient = null; }
+
+  let replyLang = 'auto';
+  function setReplyLang(lang) {
+    replyLang = lang;
+    document.getElementById('replyLangAuto').classList.toggle('active', lang === 'auto');
+    document.getElementById('replyLangBM').classList.toggle('active', lang === 'bm');
+    document.getElementById('replyLangEN').classList.toggle('active', lang === 'en');
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  async function generateReplies() {
+    const msg = document.getElementById('msgInput').value.trim();
+    const errRoot = document.getElementById('errorRoot');
+    const resultRoot = document.getElementById('resultRoot');
+    errRoot.innerHTML = '';
+
+    if (!msg) {
+      errRoot.innerHTML = '<div class="error-banner">Sila tampal mesej dahulu.</div>';
+      return;
+    }
+    if (!supabaseClient) {
+      errRoot.innerHTML = '<div class="error-banner">Belum disambungkan ke perkhidmatan AI. Sila konfigur SUPABASE_URL/SUPABASE_ANON_KEY dan Edge Function dahulu.</div>';
+      return;
+    }
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Sedang jana...';
+    resultRoot.innerHTML = '';
+
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('balas-generate', {
+        body: { message: msg, replyLang: replyLang }
+      });
+      if (error) throw error;
+      if (!data || !data.terjemahan) throw new Error('Respons tidak lengkap daripada AI.');
+      renderResults(data);
+    } catch (err) {
+      console.error(err);
+      errRoot.innerHTML = '<div class="error-banner">Gagal jana balasan. Sila cuba lagi. (' + escapeHtml(err.message || 'Ralat tidak diketahui') + ')</div>';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '✨ Terjemah &amp; Cadangan Balasan';
+    }
+  }
+
+  let lastResults = { terjemahan: '', balasan: [] };
+
+  function renderResults(data) {
+    lastResults = data;
+    const root = document.getElementById('resultRoot');
+    let html = '<div class="card">';
+    html += '<div class="section-label">Terjemahan</div>';
+    html += '<div class="translation-text">' + escapeHtml(data.terjemahan) + '</div>';
+    html += '<button type="button" class="btn-copy" onclick="copyTranslation(this)">\uD83D\uDCCB Salin Terjemahan</button>';
+    html += '</div>';
+
+    html += '<div class="section-label">Cadangan Balasan</div>';
+    (data.balasan || []).forEach((r, i) => {
+      html += '<div class="reply-card">';
+      html += '<div class="reply-tone">' + escapeHtml(r.gaya) + '</div>';
+      html += '<div class="reply-text">' + escapeHtml(r.teks) + '</div>';
+      html += '<button type="button" class="btn-copy" onclick="copyReply(this, ' + i + ')">\uD83D\uDCCB Salin</button>';
+      html += '</div>';
+    });
+    root.innerHTML = html;
+  }
+
+  function copyTranslation(btn) { copyText(btn, lastResults.terjemahan); }
+  function copyReply(btn, idx) { copyText(btn, (lastResults.balasan[idx] || {}).teks || ''); }
+
+  function copyText(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const original = btn.textContent;
+      btn.textContent = '\u2713 Disalin';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+    }).catch(() => {
+      alert('Tak dapat salin automatik. Sila salin manual: \n\n' + text);
+    });
+  }
+</script>
+</body>
+</html>
